@@ -1,0 +1,52 @@
+CREATE TABLE result_access_tokens (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    token VARCHAR(100) UNIQUE NOT NULL,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    term_id UUID NOT NULL REFERENCES terms(id) ON DELETE CASCADE,
+    session_id UUID NOT NULL REFERENCES academic_sessions(id) ON DELETE CASCADE,
+    invoice_id UUID NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+    is_used BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    expires_at TIMESTAMP,
+    used_at TIMESTAMP,
+    generated_by VARCHAR(20) DEFAULT 'system' CHECK (generated_by IN ('system', 'admin')),
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(student_id, term_id)
+);
+CREATE TABLE result_print_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    term_id UUID NOT NULL REFERENCES terms(id) ON DELETE CASCADE,
+    session_id UUID NOT NULL REFERENCES academic_sessions(id) ON DELETE CASCADE,
+    printed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    print_type VARCHAR(20) NOT NULL CHECK (print_type IN ('single', 'mass')),
+    printed_as VARCHAR(20) NOT NULL CHECK (printed_as IN ('admin', 'student')),
+    mass_print_class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+    mass_print_stream_id UUID REFERENCES streams(id) ON DELETE SET NULL,
+    token_used VARCHAR(100),
+    ip_address VARCHAR(50),
+    printed_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE result_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    template_name VARCHAR(100) NOT NULL,
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    logo_position VARCHAR(20) DEFAULT 'center' CHECK (logo_position IN ('left', 'center', 'right')),
+    show_passport BOOLEAN DEFAULT TRUE,
+    show_attendance BOOLEAN DEFAULT TRUE,
+    show_class_ranking BOOLEAN DEFAULT TRUE,
+    show_principal_remark BOOLEAN DEFAULT TRUE,
+    show_teacher_remark BOOLEAN DEFAULT TRUE,
+    show_next_term_date BOOLEAN DEFAULT TRUE,
+    show_stamp_area BOOLEAN DEFAULT TRUE,
+    show_signature_area BOOLEAN DEFAULT TRUE,
+    grading_display VARCHAR(20) DEFAULT 'both' CHECK (grading_display IN ('grade_only', 'score_only', 'both')),
+    primary_color VARCHAR(10) DEFAULT '#000080',
+    header_text TEXT,
+    footer_text TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);

@@ -1,0 +1,30 @@
+CREATE TABLE academic_calendar (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id UUID NOT NULL REFERENCES academic_sessions(id) ON DELETE CASCADE,
+    term_id UUID REFERENCES terms(id) ON DELETE CASCADE,
+    event_title VARCHAR(255) NOT NULL,
+    event_type VARCHAR(50) NOT NULL CHECK (event_type IN (
+        'resumption',
+        'closing',
+        'holiday',
+        'examination',
+        'cbt',
+        'sports',
+        'cultural',
+        'meeting',
+        'excursion',
+        'result_day',
+        'promotion_day',
+        'other'
+    )),
+    event_date DATE NOT NULL,
+    end_date DATE,
+    event_description TEXT,
+    is_school_wide BOOLEAN DEFAULT TRUE,
+    affects_class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
+    affects_stream_id UUID REFERENCES streams(id) ON DELETE SET NULL,
+    is_public BOOLEAN DEFAULT FALSE,
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);

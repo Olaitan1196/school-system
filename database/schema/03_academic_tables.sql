@@ -1,0 +1,97 @@
+CREATE TABLE enrollments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    stream_id UUID REFERENCES streams(id) ON DELETE SET NULL,
+    session_id UUID NOT NULL REFERENCES academic_sessions(id) ON DELETE CASCADE,
+    date_enrolled DATE DEFAULT CURRENT_DATE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(student_id, session_id)
+);
+CREATE TABLE teacher_assignments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    teacher_id UUID NOT NULL REFERENCES teachers(id) ON DELETE CASCADE,
+    subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    stream_id UUID REFERENCES streams(id) ON DELETE SET NULL,
+    session_id UUID NOT NULL REFERENCES academic_sessions(id) ON DELETE CASCADE,
+    is_class_teacher BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(subject_id, class_id, stream_id, session_id)
+);
+CREATE TABLE scores (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    stream_id UUID REFERENCES streams(id) ON DELETE SET NULL,
+    session_id UUID NOT NULL REFERENCES academic_sessions(id) ON DELETE CASCADE,
+    term_id UUID NOT NULL REFERENCES terms(id) ON DELETE CASCADE,
+    ca1_score NUMERIC(5,2) DEFAULT 0 CHECK (ca1_score >= 0 AND ca1_score <= 20),
+    ca2_score NUMERIC(5,2) DEFAULT 0 CHECK (ca2_score >= 0 AND ca2_score <= 20),
+    ca3_score NUMERIC(5,2) DEFAULT 0 CHECK (ca3_score >= 0 AND ca3_score <= 20),
+    exam_score NUMERIC(5,2) DEFAULT 0 CHECK (exam_score >= 0 AND exam_score <= 60),
+    total_score NUMERIC(5,2) GENERATED ALWAYS AS (ca1_score + ca2_score + ca3_score + exam_score) STORED,
+    grade VARCHAR(5),
+    remark VARCHAR(50),
+    is_absent BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(student_id, subject_id, term_id)
+);
+CREATE TABLE report_cards (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    stream_id UUID REFERENCES streams(id) ON DELETE SET NULL,
+    session_id UUID NOT NULL REFERENCES academic_sessions(id) ON DELETE CASCADE,
+    term_id UUID NOT NULL REFERENCES terms(id) ON DELETE CASCADE,
+    total_score_obtained NUMERIC(7,2) DEFAULT 0,
+    total_score_obtainable NUMERIC(7,2) DEFAULT 0,
+    average_score NUMERIC(5,2) DEFAULT 0,
+    position_in_class INTEGER,
+    position_suffix VARCHAR(5),
+    number_of_subjects INTEGER,
+    class_teacher_remark TEXT,
+    principal_remark TEXT,
+    next_term_begins DATE,
+    date_issued TIMESTAMP,
+    is_published BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(student_id, term_id)
+);
+CREATE TABLE class_rankings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    stream_id UUID REFERENCES streams(id) ON DELETE SET NULL,
+    session_id UUID NOT NULL REFERENCES academic_sessions(id) ON DELETE CASCADE,
+    term_id UUID NOT NULL REFERENCES terms(id) ON DELETE CASCADE,
+    total_score NUMERIC(7,2) DEFAULT 0,
+    average_score NUMERIC(5,2) DEFAULT 0,
+    position INTEGER NOT NULL,
+    total_students INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(student_id, term_id)
+);
+CREATE TABLE promotions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    session_id UUID NOT NULL REFERENCES academic_sessions(id) ON DELETE CASCADE,
+    from_class_id UUID NOT NULL REFERENCES classes(id),
+    to_class_id UUID REFERENCES classes(id),
+    from_stream_id UUID REFERENCES streams(id),
+    to_stream_id UUID REFERENCES streams(id),
+    promotion_status VARCHAR(20) NOT NULL CHECK (promotion_status IN ('promoted', 'repeated', 'graduated', 'withdrawn')),
+    promotion_date DATE DEFAULT CURRENT_DATE,
+    promoted_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    remarks TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(student_id, session_id)
+);
