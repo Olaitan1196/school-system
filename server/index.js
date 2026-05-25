@@ -10,6 +10,13 @@ import studentRoutes from './routes/student.routes.js';
 import teacherRoutes from './routes/teacher.routes.js';
 import academicRoutes from './routes/academic.routes.js';
 import scoresRoutes from './routes/scores.routes.js';
+import attendanceRoutes from './routes/attendance.routes.js';
+import feesRoutes from './routes/fees.routes.js';
+import cbtRoutes from './routes/cbt.routes.js';
+import libraryRoutes from './routes/library.routes.js';
+import calendarRoutes from './routes/calendar.routes.js';
+import promotionRoutes from './routes/promotion.routes.js';
+import examAccessRoutes from './routes/examaccess.routes.js';
 
 dotenv.config();
 
@@ -55,6 +62,13 @@ app.use('/api/students', studentRoutes);
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/academic', academicRoutes);
 app.use('/api/scores', scoresRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/fees', feesRoutes);
+app.use('/api/cbt', cbtRoutes);
+app.use('/api/library', libraryRoutes);
+app.use('/api/calendar', calendarRoutes);
+app.use('/api/promotions', promotionRoutes);
+app.use('/api/exam-access', examAccessRoutes);
 // ============================================
 // START SERVER
 // ============================================
