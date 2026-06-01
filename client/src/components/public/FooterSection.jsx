@@ -4,9 +4,9 @@ const FooterSection = () => {
     const year = new Date().getFullYear();
 
     return (
-        <footer className="bg-purple-950 border-t border-purple-800/50 py-12">
+        <footer className="bg-[#f8f7ff] border-t border-purple-100 py-10">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
 
                     {/* BRAND */}
                     <div className="lg:col-span-2">
@@ -15,9 +15,9 @@ const FooterSection = () => {
                                 <span className="text-white font-bold text-lg">C</span>
                             </div>
                             <div>
-                                <p className="font-bold text-white"
+                                <p className="font-bold text-purple-900"
                                    style={{ fontFamily: "'Playfair Display', serif" }}>
-                                    Comforter's College
+                                    Comforters' College
                                 </p>
                                 <p className="text-purple-400 text-xs">Excellence in Education</p>
                             </div>
@@ -31,7 +31,7 @@ const FooterSection = () => {
 
                     {/* QUICK LINKS */}
                     <div>
-                        <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">
+                        <h4 className="text-purple-900 font-semibold mb-4 text-sm uppercase tracking-wider">
                             Quick Links
                         </h4>
                         <ul className="space-y-2">
@@ -42,7 +42,7 @@ const FooterSection = () => {
                             ].map((link) => (
                                 <li key={link.label}>
                                     <Link to={link.href}
-                                        className="text-purple-400 hover:text-purple-200 text-sm transition-colors">
+                                        className="text-purple-400 hover:text-purple-700 text-sm transition-colors">
                                         {link.label}
                                     </Link>
                                 </li>
@@ -52,7 +52,7 @@ const FooterSection = () => {
 
                     {/* PORTALS */}
                     <div>
-                        <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">
+                        <h4 className="text-purple-900 font-semibold mb-4 text-sm uppercase tracking-wider">
                             Portals
                         </h4>
                         <ul className="space-y-2">
@@ -63,7 +63,7 @@ const FooterSection = () => {
                             ].map((link) => (
                                 <li key={link.label}>
                                     <Link to={link.href}
-                                        className="text-purple-400 hover:text-purple-200 text-sm transition-colors">
+                                        className="text-purple-400 hover:text-purple-700 text-sm transition-colors">
                                         {link.label}
                                     </Link>
                                 </li>
@@ -73,12 +73,12 @@ const FooterSection = () => {
                 </div>
 
                 {/* BOTTOM */}
-                <div className="border-t border-purple-800/50 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <p className="text-purple-500 text-sm">
-                        © {year} Comforter's College. All rights reserved.
+                <div className="border-t border-purple-100 pt-6 flex flex-col sm:flex-row justify-between items-center gap-3">
+                    <p className="text-purple-400 text-sm">
+                        © {year} Comforters' College. All rights reserved.
                     </p>
-                    <p className="text-purple-600 text-sm">
-                        Powered by Comforter's College School Management System
+                    <p className="text-purple-300 text-sm">
+                        Powered by Comforters' College School Management System
                     </p>
                 </div>
             </div>

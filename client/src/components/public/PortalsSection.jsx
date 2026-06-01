@@ -51,7 +51,7 @@ const PortalsSection = () => {
                     </h2>
                     <p className="text-purple-400 max-w-xl mx-auto">
                         Separate portals designed specifically for each role
-                        in the Comforter's College community.
+                        in the Comforters' College community.
                     </p>
                 </div>
 

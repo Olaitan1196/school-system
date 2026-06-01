@@ -40,7 +40,7 @@ const HeroSection = () => {
                             style={{ fontFamily: "'Playfair Display', serif" }}>
                             Welcome to{' '}
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-pink-300">
-                                Comforter's
+                                Comforters'
                             </span>
                             {' '}College
                         </h1>

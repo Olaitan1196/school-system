@@ -33,7 +33,7 @@ const Navbar = () => {
                                 isScrolled ? 'text-purple-900' : 'text-white'
                             }`}
                             style={{ fontFamily: "'Playfair Display', serif" }}>
-                                Comforter's College
+                                Comforters' College
                             </p>
                             <p className={`text-xs transition-colors ${
                                 isScrolled ? 'text-purple-400' : 'text-purple-200'

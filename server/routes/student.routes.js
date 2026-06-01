@@ -5,7 +5,8 @@ import {
     getSingleStudent,
     updateStudent,
     toggleStudentStatus,
-    addParent
+    addParent,
+    deleteStudent
 } from '../controllers/student.controller.js';
 import {
     verifyToken,
@@ -47,5 +48,8 @@ router.put(
 
 // Admin only can add parents
 router.post('/:id/parents', adminOnly, addParent);
+
+// Admin only can delete students
+router.delete('/:id', adminOnly, deleteStudent);
 
 export default router;

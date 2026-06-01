@@ -11,7 +11,8 @@ import {
     reviewPayment,
     deletePayment,
     getAllPayments,
-    addManualPayment
+    addManualPayment,
+    getOutstandingInvoices
 } from '../controllers/fees.controller.js';
 import {
     verifyToken,
@@ -54,5 +55,11 @@ router.post('/payments/manual', adminOnly, addManualPayment);
 router.get('/payments', adminOnly, getAllPayments);
 router.patch('/payments/:payment_id/review', adminOnly, reviewPayment);
 router.delete('/payments/:payment_id', adminOnly, deletePayment);
+
+router.get(
+    '/outstanding',
+    allowRoles('admin', 'class_teacher'),
+    getOutstandingInvoices
+);
 
 export default router;

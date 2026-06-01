@@ -465,3 +465,61 @@ export const deleteUser = async (req, res) => {
         });
     }
 };
+
+// ============================================
+// GET AUDIT LOGS
+// ============================================
+export const getAuditLogs = async (req, res) => {
+    try {
+        const { module, page = 1, limit = 20 } = req.query;
+
+        let conditions = [];
+        let values = [];
+        let counter = 1;
+
+        if (module) {
+            conditions.push(`module = $${counter}`);
+            values.push(module);
+            counter++;
+        }
+
+        const whereClause = conditions.length > 0
+            ? `WHERE ${conditions.join(' AND ')}`
+            : '';
+
+        const offset = (page - 1) * limit;
+
+        const result = await db.query(
+            `SELECT * FROM audit_logs
+             ${whereClause}
+             ORDER BY created_at DESC
+             LIMIT $${counter} OFFSET $${counter + 1}`,
+            [...values, limit, offset]
+        );
+
+        const countQuery = await db.query(
+            `SELECT COUNT(*) FROM audit_logs ${whereClause}`,
+            values
+        );
+
+        const total = parseInt(countQuery.rows[0].count);
+
+        return res.status(200).json({
+            success: true,
+            data: result.rows,
+            pagination: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total_pages: Math.ceil(total / limit)
+            }
+        });
+
+    } catch (error) {
+        console.error('Audit logs error:', error.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error.'
+        });
+    }
+};

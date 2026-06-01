@@ -6,7 +6,8 @@ import {
     updateTeacher,
     toggleTeacherStatus,
     assignTeacher,
-    removeAssignment
+    removeAssignment,
+    deleteTeacher
 } from '../controllers/teacher.controller.js';
 import {
     verifyToken,
@@ -47,5 +48,8 @@ router.get(
 
 // Admin only can update
 router.put('/:id', adminOnly, updateTeacher);
+
+// Admin only can delete teachers
+router.delete('/:id', adminOnly, deleteTeacher);
 
 export default router;

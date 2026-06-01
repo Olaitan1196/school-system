@@ -190,3 +190,91 @@
     background: #9333ea;
   }
 }
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+
+    /* HIDE EVERYTHING BY DEFAULT */
+    body * {
+        visibility: hidden;
+    }
+
+    /* SHOW ONLY THE PRINT AREA */
+    #result-print-area,
+    #result-print-area * {
+        visibility: visible;
+    }
+
+    /* POSITION THE PRINT AREA */
+    #result-print-area {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        padding: 20px;
+        background: white;
+    }
+
+    /* HIDE PRINT BUTTON WHEN PRINTING */
+    .no-print {
+        display: none !important;
+    }
+
+    /* PAGE SETTINGS */
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
+
+    /* RESET BACKGROUNDS FOR PRINT */
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb !important;
+    }
+
+    /* PRINT HEADER */
+    .print-header {
+        display: block !important;
+    }
+
+    /* TABLE BORDERS FOR PRINT */
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    table th,
+    table td {
+        border: 1px solid #d1d5db;
+        padding: 6px 10px;
+    }
+
+    table thead {
+        background-color: #f3f4f6 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* GRADIENT BACKGROUNDS FOR PRINT */
+    .print-purple-bg {
+        background-color: #581c87 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* PAGE BREAK */
+    .page-break {
+        page-break-after: always;
+    }
+
+    /* FONT SIZE ADJUSTMENTS */
+    body {
+        font-size: 11pt;
+    }
+
+    h1, h2, h3 {
+        font-size: 14pt;
+    }
+}

@@ -531,3 +531,79 @@ export const addParent = async (req, res) => {
         });
     }
 };
+
+// ============================================
+// DELETE STUDENT
+// ============================================
+export const deleteStudent = async (req, res) => {
+    const client = await db.connect();
+    try {
+        const { id } = req.params;
+
+        const studentQuery = await db.query(
+            `SELECT s.id, s.first_name, s.last_name,
+                    s.user_id
+             FROM students s WHERE s.id = $1`,
+            [id]
+        );
+
+        if (studentQuery.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found.'
+            });
+        }
+
+        const student = studentQuery.rows[0];
+
+        await client.query('BEGIN');
+
+        // Delete student record
+        await client.query(
+            `DELETE FROM students WHERE id = $1`,
+            [id]
+        );
+
+        // Delete user account if exists
+        if (student.user_id) {
+            await client.query(
+                `DELETE FROM users WHERE id = $1`,
+                [student.user_id]
+            );
+        }
+
+        await client.query('COMMIT');
+
+        await db.query(
+            `INSERT INTO audit_logs
+             (user_id, user_role, action, module,
+              target_table, target_id, description)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+                req.user.id,
+                req.user.role,
+                'deleted_student',
+                'students',
+                'students',
+                id,
+                `Deleted student: ${student.first_name} 
+                 ${student.last_name}`
+            ]
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Student deleted successfully.'
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Delete student error:', error.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again.'
+        });
+    } finally {
+        client.release();
+    }
+};

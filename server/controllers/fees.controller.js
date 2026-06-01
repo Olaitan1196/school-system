@@ -1119,3 +1119,68 @@ export const addManualPayment = async (req, res) => {
         client.release();
     }
 };
+
+// ============================================
+// GET OUTSTANDING INVOICES
+// ============================================
+export const getOutstandingInvoices = async (req, res) => {
+    try {
+        const { class_id, session_id, term_id } = req.query;
+
+        let conditions = [
+            `i.invoice_status IN ('unpaid', 'partial')`
+        ];
+        let values = [];
+        let counter = 1;
+
+        if (class_id) {
+            conditions.push(`i.class_id = $${counter}`);
+            values.push(class_id);
+            counter++;
+        }
+
+        if (session_id) {
+            conditions.push(`i.session_id = $${counter}`);
+            values.push(session_id);
+            counter++;
+        }
+
+        if (term_id) {
+            conditions.push(`i.term_id = $${counter}`);
+            values.push(term_id);
+            counter++;
+        }
+
+        const whereClause = `WHERE ${conditions.join(' AND ')}`;
+
+        const result = await db.query(
+            `SELECT i.*,
+                    s.first_name, s.last_name,
+                    s.admission_number,
+                    c.class_name,
+                    t.term_name,
+                    ses.session_name
+             FROM invoices i
+             LEFT JOIN students s ON s.id = i.student_id
+             LEFT JOIN classes c ON c.id = i.class_id
+             LEFT JOIN terms t ON t.id = i.term_id
+             LEFT JOIN academic_sessions ses ON ses.id = i.session_id
+             ${whereClause}
+             ORDER BY i.balance DESC`,
+            values
+        );
+
+        return res.status(200).json({
+            success: true,
+            total: result.rows.length,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Get outstanding error:', error.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again.'
+        });
+    }
+};
