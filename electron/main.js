@@ -1,40 +1,37 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, net } from 'electron';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { spawn } from 'child_process';
+import { getLocalDb } from './database/localDb.js';
+import { runFullSync, isOnline } from './services/syncService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Dev mode = app is not packaged
 const isDev = !app.isPackaged;
 
 let mainWindow;
 let splashWindow;
 let backendProcess;
+let syncInterval;
 
 // ============================================
 // START THE EXPRESS BACKEND AS A CHILD PROCESS
+// Only runs in production (packaged .exe)
 // ============================================
 const startBackend = () => {
-    const serverPath = isDev
-        ? join(__dirname, '..', 'server', 'index.js')
-        : join(process.resourcesPath, 'server', 'index.js');
+    const serverPath = join(process.resourcesPath, 'server', 'index.js');
 
-    const envPath = isDev
-        ? join(__dirname, '..', 'server', '.env')
-        : join(process.resourcesPath, 'server', '.env');
+    const envPath = join(process.resourcesPath, 'server', '.env');
 
     backendProcess = spawn('node', [serverPath], {
         env: {
             ...process.env,
-            NODE_ENV: 'development',
+            NODE_ENV: 'production',
             PORT: '5000',
             DOTENV_CONFIG_PATH: envPath
         },
-        cwd: isDev
-            ? join(__dirname, '..', 'server')
-            : join(process.resourcesPath, 'server'),
+        cwd: join(process.resourcesPath, 'server'),
         stdio: 'pipe'
     });
 
@@ -108,19 +105,83 @@ const createMainWindow = () => {
 };
 
 // ============================================
+// AUTO SYNC — watches internet every 30 seconds
+// When internet returns, runs full sync
+// ============================================
+const startSyncWatcher = () => {
+    let wasOnline = isOnline();
+
+    syncInterval = setInterval(async () => {
+        const nowOnline = isOnline();
+
+        // Tell the frontend the current connection status
+        if (mainWindow) {
+            mainWindow.webContents.send('connection-status', nowOnline);
+        }
+
+        // If we just came back online, trigger a sync
+        if (!wasOnline && nowOnline) {
+            console.log('Internet restored — starting sync...');
+
+            if (mainWindow) {
+                mainWindow.webContents.send('sync-started');
+            }
+
+            const supabaseUrl = process.env.SUPABASE_URL;
+            const supabaseKey = process.env.SUPABASE_ANON_KEY;
+
+            const result = await runFullSync(supabaseUrl, supabaseKey);
+
+            if (mainWindow) {
+                mainWindow.webContents.send('sync-complete', result);
+            }
+        }
+
+        wasOnline = nowOnline;
+
+    }, 30000);
+};
+
+// ============================================
+// IPC HANDLERS
+// These let the React frontend communicate
+// with the Electron backend
+// ============================================
+
+// Frontend requests a manual sync
+ipcMain.handle('manual-sync', async () => {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
+    const result = await runFullSync(supabaseUrl, supabaseKey);
+    return result;
+});
+
+// Frontend asks for current online status
+ipcMain.handle('get-online-status', () => {
+    return isOnline();
+});
+
+// Frontend requests to open a URL in browser
+ipcMain.on('open-external', (event, url) => {
+    shell.openExternal(url);
+});
+
+// ============================================
 // APP LIFECYCLE
 // ============================================
 app.whenReady().then(() => {
+    // Initialize SQLite database
+    getLocalDb();
+
     createSplashWindow();
 
-    // Only start backend as child process in production
-    // In dev, nodemon already runs the backend
     if (!isDev) {
         startBackend();
     }
 
     setTimeout(() => {
         createMainWindow();
+        startSyncWatcher();
     }, 3000);
 
     app.on('activate', () => {
@@ -131,20 +192,14 @@ app.whenReady().then(() => {
 });
 
 app.on('before-quit', () => {
-    if (backendProcess) {
-        backendProcess.kill();
-    }
+    if (backendProcess) backendProcess.kill();
+    if (syncInterval) clearInterval(syncInterval);
 });
 
 app.on('window-all-closed', () => {
-    if (backendProcess) {
-        backendProcess.kill();
-    }
+    if (backendProcess) backendProcess.kill();
+    if (syncInterval) clearInterval(syncInterval);
     if (process.platform !== 'darwin') {
         app.quit();
     }
-});
-
-ipcMain.on('open-external', (event, url) => {
-    shell.openExternal(url);
 });

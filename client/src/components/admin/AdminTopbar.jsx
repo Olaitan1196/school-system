@@ -1,6 +1,7 @@
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import NotificationDropdown from './NotificationDropdown';
+import OnlineBadge from './OnlineBadge';
 
 const AdminTopbar = ({ onMenuClick }) => {
     const { user } = useAuth();
@@ -25,7 +26,6 @@ const AdminTopbar = ({ onMenuClick }) => {
 
             {/* LEFT SIDE */}
             <div className="flex items-center gap-4">
-                {/* HAMBURGER - mobile only */}
                 <button
                     onClick={onMenuClick}
                     className="lg:hidden p-2 rounded-lg hover:bg-purple-50 transition-colors"
@@ -46,8 +46,11 @@ const AdminTopbar = ({ onMenuClick }) => {
             {/* RIGHT SIDE */}
             <div className="flex items-center gap-3">
 
+                {/* ONLINE/OFFLINE BADGE */}
+                <OnlineBadge />
+
                 {/* NOTIFICATIONS */}
-               <NotificationDropdown />
+                <NotificationDropdown />
 
                 {/* PROFILE */}
                 <button
