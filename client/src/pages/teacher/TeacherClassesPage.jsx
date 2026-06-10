@@ -39,7 +39,7 @@ const TeacherClassesPage = () => {
         enabled: !!(selectedClass && selectedSession)
     });
 
-    const assignments = teacherData?.data?.assignments ?? [];
+    const assignments = teacherData?.assignments ?? [];
     const sessions = sessionsData?.data ?? [];
     const students = studentsData?.data ?? [];
 

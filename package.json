@@ -1,1 +1,59 @@
-{}
+{
+  "name": "comforters-college",
+  "version": "1.0.0",
+  "description": "Comforters' College School Management System",
+  "main": "electron/main.js",
+  "type": "module",
+  "author": "Comforters College",
+  "private": true,
+  "scripts": {
+    "electron": "electron .",
+    "electron:dev": "concurrently \"npm run dev --prefix client\" \"cd server && nodemon index.js\" \"wait-on http://localhost:5173 && electron .\"",
+    "electron:build": "npm run build --prefix client && electron-builder build --win",
+    "dev:client": "npm run dev --prefix client",
+    "dev:server": "cd server && nodemon index.js"
+  },
+  "build": {
+    "appId": "com.comforterscollege.app",
+    "productName": "Comforters College",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "server/**/*",
+      "client/dist/**/*",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "server",
+        "to": "server"
+      },
+      {
+        "from": "client/dist",
+        "to": "client/dist"
+      }
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "electron/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.0",
+    "nodemon": "^3.1.0",
+    "wait-on": "^7.2.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.10.0"
+  }
+}

@@ -90,6 +90,8 @@ export const login = async (req, res) => {
                 last_name: user.last_name || null,
                 admission_number: user.admission_number || null,
                 staff_id: user.staff_id || null,
+                student_id: user.student_id || null,
+                teacher_id: user.teacher_id || null,
                 email: user.email,
                 phone: user.phone,
             }
