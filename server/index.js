@@ -22,6 +22,7 @@ import calendarRoutes from './routes/calendar.routes.js';
 import promotionRoutes from './routes/promotion.routes.js';
 import examAccessRoutes from './routes/examaccess.routes.js';
 import notificationRoutes from './routes/notifications.routes.js';
+import cbtTokenRoutes from './routes/cbtToken.routes.js';
 
 dotenv.config();
 
@@ -97,7 +98,7 @@ app.use('/api/calendar', calendarRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/exam-access', examAccessRoutes);
 app.use('/api/notifications', notificationRoutes);
-
+app.use('/api/cbt-tokens', cbtTokenRoutes);
 // ============================================
 // SERVE REACT FRONTEND
 // Express serves the built React app to any

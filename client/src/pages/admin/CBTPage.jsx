@@ -924,6 +924,9 @@ const CreateCBTSessionModal = ({ exam, onClose, onSuccess, onOpen, onClose2 }) =
         max_students: ''
     });
     const [createdSession, setCreatedSession] = useState(null);
+    const [tokens, setTokens] = useState([]);
+    const [generatingTokens, setGeneratingTokens] = useState(false);
+    const [loadingTokens, setLoadingTokens] = useState(false);
 
     const mutation = useMutation({
         mutationFn: async (data) => {
@@ -954,9 +957,46 @@ const CreateCBTSessionModal = ({ exam, onClose, onSuccess, onOpen, onClose2 }) =
         });
     };
 
+    // GENERATE TOKENS FOR ALL STUDENTS IN THE CLASS
+    const handleGenerateTokens = async () => {
+        setGeneratingTokens(true);
+        try {
+            const res = await api.post(
+                `/cbt-tokens/sessions/${createdSession.id}/generate-tokens`
+            );
+            if (res.data.success) {
+                toast.success(res.data.message);
+                setTokens(res.data.data);
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to generate tokens.');
+        } finally {
+            setGeneratingTokens(false);
+        }
+    };
+
+    // FETCH EXISTING TOKENS IF ALREADY GENERATED
+    const handleFetchTokens = async () => {
+        setLoadingTokens(true);
+        try {
+            const res = await api.get(
+                `/cbt-tokens/sessions/${createdSession.id}/tokens`
+            );
+            if (res.data.success) {
+                setTokens(res.data.data);
+            }
+        } catch (error) {
+            toast.error('Failed to fetch tokens.');
+        } finally {
+            setLoadingTokens(false);
+        }
+    };
+
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md">
+            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+
+                {/* HEADER */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-100">
                     <div>
                         <h2 className="text-xl font-bold text-purple-950"
@@ -968,6 +1008,7 @@ const CreateCBTSessionModal = ({ exam, onClose, onSuccess, onOpen, onClose2 }) =
                     <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400">✕</button>
                 </div>
 
+                {/* STEP 1 — CREATE SESSION FORM */}
                 {!createdSession ? (
                     <form onSubmit={handleSubmit} className="p-6 space-y-4">
                         <div className="form-group">
@@ -1036,15 +1077,19 @@ const CreateCBTSessionModal = ({ exam, onClose, onSuccess, onOpen, onClose2 }) =
                             </button>
                         </div>
                     </form>
+
                 ) : (
-                    <div className="p-6">
-                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 text-center">
-                            <div className="text-3xl mb-2">✅</div>
-                            <p className="font-semibold text-green-800">Session Created Successfully</p>
-                            <p className="text-green-600 text-sm mt-1">
-                                {createdSession.session_name}
-                            </p>
+                    // STEP 2 — SESSION CREATED, SHOW OPTIONS AND TOKENS
+                    <div className="p-6 space-y-4">
+
+                        {/* SUCCESS BANNER */}
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-center">
+                            <div className="text-3xl mb-1">✅</div>
+                            <p className="font-semibold text-green-800">Session Created</p>
+                            <p className="text-green-600 text-sm">{createdSession.session_name}</p>
                         </div>
+
+                        {/* OPEN / OPEN LATER BUTTONS */}
                         <div className="grid grid-cols-2 gap-3">
                             <button
                                 onClick={() => {
@@ -1061,6 +1106,81 @@ const CreateCBTSessionModal = ({ exam, onClose, onSuccess, onOpen, onClose2 }) =
                             >
                                 Open Later
                             </button>
+                        </div>
+
+                        {/* DIVIDER */}
+                        <div className="border-t border-purple-100 pt-4">
+                            <p className="text-purple-700 font-semibold text-sm mb-3">
+                                📋 Student Exam Tokens
+                            </p>
+
+                            {/* GENERATE / FETCH BUTTONS */}
+                            <div className="flex gap-2 mb-4">
+                                <button
+                                    onClick={handleGenerateTokens}
+                                    disabled={generatingTokens}
+                                    className="btn-primary text-sm flex-1"
+                                >
+                                    {generatingTokens ? 'Generating...' : '🔑 Generate Tokens'}
+                                </button>
+                                {tokens.length === 0 && (
+                                    <button
+                                        onClick={handleFetchTokens}
+                                        disabled={loadingTokens}
+                                        className="btn-secondary text-sm"
+                                    >
+                                        {loadingTokens ? 'Loading...' : '🔄 Fetch Existing'}
+                                    </button>
+                                )}
+                            </div>
+
+                            {/* TOKEN LIST */}
+                            {tokens.length > 0 && (
+                                <div className="border border-purple-100 rounded-xl overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-purple-50">
+                                            <tr>
+                                                <th className="text-left px-4 py-2 text-purple-700 font-semibold">Student</th>
+                                                <th className="text-left px-4 py-2 text-purple-700 font-semibold">Adm. No</th>
+                                                <th className="text-left px-4 py-2 text-purple-700 font-semibold">Token</th>
+                                                <th className="text-left px-4 py-2 text-purple-700 font-semibold">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {tokens.map((t, idx) => (
+                                                <tr key={idx} className="border-t border-purple-50">
+                                                    <td className="px-4 py-2 text-purple-900 font-medium">
+                                                        {t.last_name} {t.first_name}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-purple-500 text-xs">
+                                                        {t.admission_number}
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        <span className="bg-purple-100 text-purple-800 font-bold text-xs px-2 py-1 rounded-lg tracking-wide">
+                                                            {t.access_token}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                                                            t.is_used
+                                                                ? 'bg-green-100 text-green-700'
+                                                                : 'bg-yellow-100 text-yellow-700'
+                                                        }`}>
+                                                            {t.is_used ? 'Used' : 'Unused'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+
+                            {tokens.length === 0 && !generatingTokens && (
+                                <div className="text-center py-6 text-purple-300 text-sm">
+                                    No tokens yet. Click Generate Tokens to create them.
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

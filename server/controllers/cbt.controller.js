@@ -1271,23 +1271,23 @@ export const accessExamByToken = async (req, res) => {
 
         // Find the token in exam_access_requests table
         const tokenQuery = await db.query(
-            `SELECT ear.*,
-                    s.first_name, s.last_name,
-                    s.admission_number, s.id AS student_id,
-                    cs.id AS session_id, cs.is_open,
-                    cs.is_completed, cs.exam_id,
-                    ce.exam_title, ce.duration_minutes,
-                    ce.total_questions, ce.shuffle_questions,
-                    ce.shuffle_options, ce.allow_review,
-                    ce.instructions, ce.subject_id,
-                    ce.class_id, ce.total_marks
-             FROM exam_access_requests ear
-             LEFT JOIN students s ON s.id = ear.student_id
-             LEFT JOIN cbt_sessions cs ON cs.id = ear.cbt_session_id
-             LEFT JOIN cbt_exams ce ON ce.id = cs.exam_id
-             WHERE ear.access_token = $1`,
-            [token.trim().toUpperCase()]
-        );
+    `SELECT ct.*,
+            s.first_name, s.last_name,
+            s.admission_number, s.id AS student_id,
+            cs.id AS session_id, cs.is_open,
+            cs.is_completed, cs.exam_id,
+            ce.exam_title, ce.duration_minutes,
+            ce.total_questions, ce.shuffle_questions,
+            ce.shuffle_options, ce.allow_review,
+            ce.instructions, ce.subject_id,
+            ce.class_id, ce.total_marks
+     FROM cbt_tokens ct
+     LEFT JOIN students s ON s.id = ct.student_id
+     LEFT JOIN cbt_sessions cs ON cs.id = ct.cbt_session_id
+     LEFT JOIN cbt_exams ce ON ce.id = cs.exam_id
+     WHERE ct.access_token = $1`,
+    [token.trim().toUpperCase()]
+);
 
         if (tokenQuery.rows.length === 0) {
             return res.status(404).json({
@@ -1386,12 +1386,10 @@ export const accessExamByToken = async (req, res) => {
 
         // Log token usage
         await db.query(
-            `INSERT INTO exam_access_token_usage
-             (request_id, used_at, ip_address)
-             VALUES ($1, NOW(), $2)
-             ON CONFLICT DO NOTHING`,
-            [tokenData.id, req.ip]
-        );
+    `UPDATE cbt_tokens SET is_used = TRUE
+     WHERE access_token = $1`,
+    [token.trim().toUpperCase()]
+);
 
         return res.status(200).json({
             success: true,
