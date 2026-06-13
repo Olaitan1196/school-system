@@ -1252,3 +1252,170 @@ export const submitPublicExam = async (req, res) => {
         });
     }
 };
+
+// ============================================
+// ACCESS EXAM VIA TOKEN
+// Students enter this token on exam day
+// No login required — token is their key
+// ============================================
+export const accessExamByToken = async (req, res) => {
+    try {
+        const { token } = req.body;
+
+        if (!token) {
+            return res.status(400).json({
+                success: false,
+                message: 'Exam token is required.'
+            });
+        }
+
+        // Find the token in exam_access_requests table
+        const tokenQuery = await db.query(
+            `SELECT ear.*,
+                    s.first_name, s.last_name,
+                    s.admission_number, s.id AS student_id,
+                    cs.id AS session_id, cs.is_open,
+                    cs.is_completed, cs.exam_id,
+                    ce.exam_title, ce.duration_minutes,
+                    ce.total_questions, ce.shuffle_questions,
+                    ce.shuffle_options, ce.allow_review,
+                    ce.instructions, ce.subject_id,
+                    ce.class_id, ce.total_marks
+             FROM exam_access_requests ear
+             LEFT JOIN students s ON s.id = ear.student_id
+             LEFT JOIN cbt_sessions cs ON cs.id = ear.cbt_session_id
+             LEFT JOIN cbt_exams ce ON ce.id = cs.exam_id
+             WHERE ear.access_token = $1`,
+            [token.trim().toUpperCase()]
+        );
+
+        if (tokenQuery.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Invalid exam token. Please check and try again.'
+            });
+        }
+
+        const tokenData = tokenQuery.rows[0];
+
+        // Check if token has expired
+        if (tokenData.expires_at && new Date(tokenData.expires_at) < new Date()) {
+            return res.status(400).json({
+                success: false,
+                message: 'This exam token has expired.'
+            });
+        }
+
+        // Check if session is open
+        if (!tokenData.is_open) {
+            return res.status(400).json({
+                success: false,
+                message: 'The exam session is not open yet. Please wait for your teacher.'
+            });
+        }
+
+        // Check if session is already completed
+        if (tokenData.is_completed) {
+            return res.status(400).json({
+                success: false,
+                message: 'This exam session has already ended.'
+            });
+        }
+
+        // Check if student already submitted
+        const existingResult = await db.query(
+            `SELECT id, submitted_at FROM cbt_results
+             WHERE cbt_session_id = $1 AND student_id = $2`,
+            [tokenData.session_id, tokenData.student_id]
+        );
+
+        if (
+            existingResult.rows.length > 0 &&
+            existingResult.rows[0].submitted_at !== null
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: 'You have already submitted this exam.'
+            });
+        }
+
+        // Get questions for the exam
+        const questionsQuery = await db.query(
+            `SELECT id, question_text, question_type,
+                    option_a, option_b, option_c, option_d,
+                    marks
+             FROM question_banks
+             WHERE subject_id = $1
+             AND class_id = $2
+             AND is_active = TRUE`,
+            [tokenData.subject_id, tokenData.class_id]
+        );
+
+        if (questionsQuery.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No questions found for this exam.'
+            });
+        }
+
+        // Shuffle and slice questions
+        let examQuestions = questionsQuery.rows;
+
+        if (tokenData.shuffle_questions) {
+            examQuestions = examQuestions.sort(() => Math.random() - 0.5);
+        }
+
+        examQuestions = examQuestions.slice(0, tokenData.total_questions);
+
+        // Create result record if not exists
+        if (existingResult.rows.length === 0) {
+            await db.query(
+                `INSERT INTO cbt_results (
+                    cbt_session_id, exam_id, student_id,
+                    total_questions, started_at,
+                    tab_switch_count, is_flagged
+                ) VALUES ($1, $2, $3, $4, NOW(), 0, FALSE)`,
+                [
+                    tokenData.session_id,
+                    tokenData.exam_id,
+                    tokenData.student_id,
+                    examQuestions.length
+                ]
+            );
+        }
+
+        // Log token usage
+        await db.query(
+            `INSERT INTO exam_access_token_usage
+             (request_id, used_at, ip_address)
+             VALUES ($1, NOW(), $2)
+             ON CONFLICT DO NOTHING`,
+            [tokenData.id, req.ip]
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Token verified. Exam is ready.',
+            data: {
+                student_name: `${tokenData.first_name} ${tokenData.last_name}`,
+                admission_number: tokenData.admission_number,
+                student_id: tokenData.student_id,
+                session_id: tokenData.session_id,
+                exam_title: tokenData.exam_title,
+                duration_minutes: tokenData.duration_minutes,
+                total_questions: examQuestions.length,
+                total_marks: tokenData.total_marks,
+                allow_review: tokenData.allow_review,
+                instructions: tokenData.instructions,
+                questions: examQuestions
+            }
+        });
+
+    } catch (error) {
+        console.error('Access exam by token error:', error.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again.'
+        });
+    }
+};

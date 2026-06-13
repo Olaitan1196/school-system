@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import AdminSidebar from '../components/admin/AdminSidebar';
 import AdminTopbar from '../components/admin/AdminTopbar';
+import NetworkInfoBar from '../components/admin/NetworkInfoBar';
 
 const AdminLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -25,6 +26,9 @@ const AdminLayout = () => {
 
             {/* MAIN CONTENT */}
             <div className="flex-1 flex flex-col min-w-0 lg:ml-64">
+
+                {/* NETWORK INFO BAR — only shows in Electron */}
+                <NetworkInfoBar />
 
                 {/* TOPBAR */}
                 <AdminTopbar

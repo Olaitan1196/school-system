@@ -47,6 +47,8 @@ import StudentResultsPage from './pages/student/StudentResultsPage';
 import StudentAttendancePage from './pages/student/StudentAttendancePage';
 import StudentInvoicePage from './pages/student/StudentInvoicePage';
 import StudentSettingsPage from './pages/student/StudentSettingsPage';
+import CBTLoginPage from './pages/public/CBTLoginPage';
+import CBTExamPage from './pages/student/CBTExamPage';
 
 // PLACEHOLDER COMPONENT
 const ComingSoon = ({ page }) => (
@@ -94,6 +96,8 @@ const App = () => {
             <Route path="/result" element={<ResultCheckPage />} />
             <Route path="/exam-access" element={<ExamAccessPage />} />
             <Route path="/practice-exams" element={<PublicExamPage />} />
+            <Route path="/cbt-login" element={<CBTLoginPage />} />
+            <Route path="/cbt-exam" element={<CBTExamPage />} />
 
             {/* AUTH ROUTES */}
             <Route path="/login/admin" element={<AdminLoginPage />} />

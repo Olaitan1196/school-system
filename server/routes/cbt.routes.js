@@ -1,4 +1,5 @@
 import express from 'express';
+import { accessExamByToken } from '../controllers/cbt.controller.js';
 import {
     createQuestion,
     getQuestions,
@@ -14,7 +15,7 @@ import {
     getFlaggedStudents,
     createPublicQuestion,
     startPublicExam,
-    submitPublicExam
+    submitPublicExam,
 } from '../controllers/cbt.controller.js';
 import {
     verifyToken,
@@ -29,6 +30,7 @@ const router = express.Router();
 // ============================================
 router.post('/public/start', startPublicExam);
 router.post('/public/submit', submitPublicExam);
+router.post('/access-by-token', accessExamByToken);
 
 // All other routes require login
 router.use(verifyToken);

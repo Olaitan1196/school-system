@@ -4,11 +4,23 @@ import { dirname, join } from 'path';
 import { spawn } from 'child_process';
 import { getLocalDb } from './database/localDb.js';
 import { runFullSync, isOnline } from './services/syncService.js';
+import { networkInterfaces } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const isDev = !app.isPackaged;
+const getLocalIP = () => {
+    const nets = networkInterfaces();
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            if (net.family === 'IPv4' && !net.internal) {
+                return net.address;
+            }
+        }
+    }
+    return 'localhost';
+};
 
 let mainWindow;
 let splashWindow;
@@ -79,7 +91,7 @@ const createMainWindow = () => {
         show: false,
         title: "Comforters' College",
         webPreferences: {
-            preload: join(__dirname, 'preload.js'),
+            preload: join(__dirname, 'preload.cjs'),
             nodeIntegration: false,
             contextIsolation: true
         }
@@ -188,6 +200,10 @@ app.whenReady().then(() => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createMainWindow();
         }
+    });
+
+    ipcMain.handle('get-local-ip', () => {
+    return `http://${getLocalIP()}:5000`;
     });
 });
 

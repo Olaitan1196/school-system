@@ -3,6 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { createServer } from 'http';
+import { networkInterfaces } from 'os';
 import './config/db.js';
 import authRoutes from './routes/auth.routes.js';
 import adminRoutes from './routes/admin.routes.js';
@@ -21,42 +25,64 @@ import notificationRoutes from './routes/notifications.routes.js';
 
 dotenv.config();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+// ============================================
+// DETECT LOCAL NETWORK IP ADDRESS
+// This is the IP students will type in their
+// browser to access the app
+// ============================================
+const getLocalIP = () => {
+    const nets = networkInterfaces();
+    for (const name of Object.keys(nets)) {
+        for (const net of nets[name]) {
+            if (net.family === 'IPv4' && !net.internal) {
+                return net.address;
+            }
+        }
+    }
+    return 'localhost';
+};
 
 // ============================================
 // MIDDLEWARES
 // ============================================
 
-// Allows frontend to talk to backend
-app.use(cors());
+// Allow any device on the local network to
+// access the app — needed for student computers
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (mobile apps, curl, etc)
+        if (!origin) return callback(null, true);
+        // Allow localhost and any local network IP
+        if (
+            origin.includes('localhost') ||
+            origin.includes('127.0.0.1') ||
+            origin.includes('192.168.') ||
+            origin.includes('10.0.') ||
+            origin.includes('comforterscollege.netlify.app')
+        ) {
+            return callback(null, true);
+        }
+        return callback(null, true); // Open for now
+    },
+    credentials: true
+}));
 
-// Adds security headers to every response
-app.use(helmet());
-
-// Logs every request in the terminal
+app.use(helmet({
+    contentSecurityPolicy: false // Allow local network serving
+}));
 app.use(morgan('dev'));
-
-// Allows server to read JSON data from requests
 app.use(express.json());
-
-// Allows server to read form data from requests
 app.use(express.urlencoded({ extended: true }));
 
-
 // ============================================
-// TEST ROUTE
+// API ROUTES
 // ============================================
-app.get('/', (req, res) => {
-    res.json({
-        success: true,
-        message: 'Comforters College Server is running',
-        environment: process.env.NODE_ENV,
-        version: '1.0.0'
-    });
-});
-
-// ROUTES
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/students', studentRoutes);
@@ -71,13 +97,32 @@ app.use('/api/calendar', calendarRoutes);
 app.use('/api/promotions', promotionRoutes);
 app.use('/api/exam-access', examAccessRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+// ============================================
+// SERVE REACT FRONTEND
+// Express serves the built React app to any
+// student computer that connects on the network
+// ============================================
+const clientDistPath = join(__dirname, '..', 'client', 'dist');
+app.use(express.static(clientDistPath));
+
+// Any route that is not an API route gets
+// sent the React app — this handles React Router
+app.get('/{*path}', (req, res) => {
+    res.sendFile(join(clientDistPath, 'index.html'));
+});
+
 // ============================================
 // START SERVER
 // ============================================
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+const localIP = getLocalIP();
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`✅ Server running on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV}`);
-    console.log(`Test URL: http://localhost:${PORT}`);
+    console.log(`🌐 Online URL: http://localhost:${PORT}`);
+    console.log(`📡 Local Network URL: http://${localIP}:${PORT}`);
+    console.log(`👨‍💻 Share this with students: http://${localIP}:${PORT}`);
 });
 
 export default app;

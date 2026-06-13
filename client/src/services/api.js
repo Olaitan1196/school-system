@@ -1,8 +1,24 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+// If VITE_API_URL is set (Netlify deployment), use it.
+// If running on a student's browser via local network,
+// use the same host they loaded the app from.
+// If running in dev mode, use localhost.
+const getBaseURL = () => {
+    if (import.meta.env.VITE_API_URL) {
+        return import.meta.env.VITE_API_URL;
+    }
+    if (typeof window !== 'undefined') {
+        const { protocol, hostname, port } = window.location;
+        if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+            return `${protocol}//${hostname}:${port}/api`;
+        }
+    }
+    return 'http://localhost:5000/api';
+};
 
-// Create axios instance
+const API_URL = getBaseURL();
+
 const api = axios.create({
     baseURL: API_URL,
     headers: {
@@ -10,8 +26,6 @@ const api = axios.create({
     },
 });
 
-// Request interceptor
-// Automatically adds token to every request
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
@@ -23,8 +37,6 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// Response interceptor
-// Handles expired tokens automatically
 api.interceptors.response.use(
     (response) => response,
     (error) => {
