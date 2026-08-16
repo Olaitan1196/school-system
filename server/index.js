@@ -57,9 +57,7 @@ const getLocalIP = () => {
 // access the app — needed for student computers
 app.use(cors({
     origin: function (origin, callback) {
-        // Allow requests with no origin (mobile apps, curl, etc)
         if (!origin) return callback(null, true);
-        // Allow localhost and any local network IP
         if (
             origin.includes('localhost') ||
             origin.includes('127.0.0.1') ||
@@ -69,14 +67,17 @@ app.use(cors({
         ) {
             return callback(null, true);
         }
-        return callback(null, true); // Open for now
+        return callback(null, true);
     },
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    preflightContinue: false
 }));
 
 app.use(helmet({
-    contentSecurityPolicy: false // Allow local network serving
+    contentSecurityPolicy: false, // Allow local network serving
+    crossOriginResourcePolicy: false
 }));
 app.use(morgan('dev'));
 app.use(express.json());
