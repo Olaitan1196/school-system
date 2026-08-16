@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -51,18 +51,23 @@ const ScoresPage = () => {
         enabled: true
     });
 
-    // FETCH STUDENTS IN CLASS
-    const { data: studentsData, isLoading: loadingStudents } = useQuery({
-        queryKey: ['class-students', selectedClass, selectedSession],
-        queryFn: async () => {
+    
+    // FETCH STUDENTS IN CLASS - Direct fetch
+const [loadingStudents, setLoadingStudents] = useState(false);
+
+useEffect(() => {
+    if (!selectedClass || !selectedSession) {
+        setScores([]);
+        return;
+    }
+
+    const fetchStudents = async () => {
+        setLoadingStudents(true);
+        try {
             const res = await api.get(
                 `/academic/classes/${selectedClass}/students?session_id=${selectedSession}`
             );
-            return res.data;
-        },
-        enabled: !!(selectedClass && selectedSession),
-        onSuccess: (data) => {
-            const initialScores = data.data.map((student) => ({
+            const initialScores = res.data.data.map((student) => ({
                 student_id: student.student_id,
                 first_name: student.first_name,
                 last_name: student.last_name,
@@ -74,8 +79,16 @@ const ScoresPage = () => {
                 is_absent: false
             }));
             setScores(initialScores);
+        } catch (error) {
+            console.error('Error fetching students:', error);
+            setScores([]);
+        } finally {
+            setLoadingStudents(false);
         }
-    });
+    };
+
+    fetchStudents();
+}, [selectedClass, selectedSession]);
 
     // FETCH EXISTING SCORES
     const { data: existingScores } = useQuery({
