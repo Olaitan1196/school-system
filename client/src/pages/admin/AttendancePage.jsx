@@ -44,9 +44,11 @@ const AttendancePage = () => {
     const { data: studentsData, isLoading: loadingStudents } = useQuery({
         queryKey: ['class-students', selectedClass, selectedSession],
         queryFn: async () => {
+            console.log('📡 Fetching students for class:', selectedClass, 'session:', selectedSession);
             const res = await api.get(
                 `/academic/classes/${selectedClass}/students?session_id=${selectedSession}`
             );
+            console.log('📦 Response received:', res.data);
             return res.data;
         },
         enabled: !!(selectedClass && selectedSession),
@@ -78,7 +80,12 @@ const AttendancePage = () => {
         staleTime: 0,
         onSuccess: (data) => {
             if (data.data.length > 0) {
-                setAttendanceList(prev => prev.map(student => {
+                setAttendanceList
+    // FETCH CLASS ATTENDANCE SUMMARY
+    const { data: summaryData } = useQuery({
+        queryKey: ['attendance-summary', selectedClass, selectedTerm],
+        queryFn: async () => {
+            const res = await api.get((prev => prev.map(student => {
                     const existing = data.data.find(
                         a => a.student_id === student.student_id
                     );
@@ -95,11 +102,6 @@ const AttendancePage = () => {
         }
     });
 
-    // FETCH CLASS ATTENDANCE SUMMARY
-    const { data: summaryData } = useQuery({
-        queryKey: ['attendance-summary', selectedClass, selectedTerm],
-        queryFn: async () => {
-            const res = await api.get(
                 `/attendance/class/summary?class_id=${selectedClass}&term_id=${selectedTerm}`
             );
             return res.data;
