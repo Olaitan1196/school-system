@@ -403,6 +403,8 @@ const ClassesPage = () => {
                     classes={classes}
                     sessions={sessions}
                     queryClient={queryClient}
+                    classId={selectedClass?.id}
+                    sessionId={selectedSession}
                     onClose={() => setShowModal(null)}
                     onSuccess={() => setShowModal(null)}
                 />
