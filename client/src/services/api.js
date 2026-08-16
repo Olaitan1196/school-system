@@ -25,18 +25,19 @@ const api = axios.create({
         'Content-Type': 'application/json',
     },
 });
-
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
-        console.log('🔍 Interceptor running. Token:', token ? 'YES' : 'NO');
-        console.log('📍 Request URL:', config.url);
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
-            console.log('✅ Authorization header added');
         }
+        // Bypass HTTP caching
+        config.headers['Cache-Control'] = 'no-cache';
+        config.headers['Pragma'] = 'no-cache';
         return config;
     },
+
+
     (error) => Promise.reject(error)
 );
 

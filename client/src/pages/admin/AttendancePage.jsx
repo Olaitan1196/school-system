@@ -45,7 +45,7 @@ const { data: studentsData, isLoading: loadingStudents } = useQuery({
     queryKey: ['class-students', selectedClass, selectedSession],
     queryFn: async () => {
         const res = await api.get(
-            `/academic/classes/${selectedClass}/students?session_id=${selectedSession}`
+            `/academic/classes/${selectedClass}/students?session_id=${selectedSession}&_t=${Date.now()}`
         );
         return res.data;
     },
@@ -70,7 +70,7 @@ const { data: existingAttendance } = useQuery({
     queryKey: ['attendance', selectedClass, selectedDate, selectedTerm, selectedSession],
     queryFn: async () => {
         const res = await api.get(
-            `/attendance/class?class_id=${selectedClass}&attendance_date=${selectedDate}&term_id=${selectedTerm}&session_id=${selectedSession}`
+            `/attendance/class?class_id=${selectedClass}&attendance_date=${selectedDate}&term_id=${selectedTerm}&session_id=${selectedSession}&_t=${Date.now()}`
         );
         return res.data;
     },
