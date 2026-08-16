@@ -185,7 +185,7 @@ export const markBulkAttendance = async (req, res) => {
 // ============================================
 export const getClassAttendance = async (req, res) => {
     try {
-        const { class_id, attendance_date, term_id } = req.query;
+        const { class_id, attendance_date, term_id, session_id } = req.query;
 
         if (!class_id || !attendance_date) {
             return res.status(400).json({
@@ -209,9 +209,16 @@ export const getClassAttendance = async (req, res) => {
             AND a.attendance_date = $2
         `;
         let values = [class_id, attendance_date];
+        let counter = 3;
+
+        if (session_id) {
+            query += ` AND a.session_id = $${counter}`;
+            values.push(session_id);
+            counter++;
+        }
 
         if (term_id) {
-            query += ` AND a.term_id = $3`;
+            query += ` AND a.term_id = $${counter}`;
             values.push(term_id);
         }
 
