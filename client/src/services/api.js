@@ -31,9 +31,6 @@ api.interceptors.request.use(
         if (token) {
             config.headers['Authorization'] = `Bearer ${token}`;
         }
-        // Bypass HTTP caching
-        config.headers['Cache-Control'] = 'no-cache';
-        config.headers['Pragma'] = 'no-cache';
         return config;
     },
 
