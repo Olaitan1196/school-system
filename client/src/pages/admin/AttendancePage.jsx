@@ -40,30 +40,41 @@ const AttendancePage = () => {
         }
     });
 
-    // FETCH STUDENTS IN CLASS
-const { data: studentsData, isLoading: loadingStudents } = useQuery({
-    queryKey: ['class-students', selectedClass, selectedSession],
-    queryFn: async () => {
-        const res = await api.get(
-            `/academic/classes/${selectedClass}/students?session_id=${selectedSession}&_t=${Date.now()}`
-        );
-        return res.data;
-    },
-    enabled: !!(selectedClass && selectedSession),
-    staleTime: 0,
-    gcTime: 0,
-    onSuccess: (data) => {
-        const list = data.data.map((student) => ({
-            student_id: student.student_id,
-            first_name: student.first_name,
-            last_name: student.last_name,
-            admission_number: student.admission_number,
-            status: 'present',
-            remark: ''
-        }));
-        setAttendanceList(list);
+    
+// FETCH STUDENTS IN CLASS - Direct fetch, no caching
+const [loadingStudents, setLoadingStudents] = useState(false);
+
+useEffect(() => {
+    if (!selectedClass || !selectedSession) {
+        setAttendanceList([]);
+        return;
     }
-});
+
+    const fetchStudents = async () => {
+        setLoadingStudents(true);
+        try {
+            const res = await api.get(
+                `/academic/classes/${selectedClass}/students?session_id=${selectedSession}`
+            );
+            const list = res.data.data.map((student) => ({
+                student_id: student.student_id,
+                first_name: student.first_name,
+                last_name: student.last_name,
+                admission_number: student.admission_number,
+                status: 'present',
+                remark: ''
+            }));
+            setAttendanceList(list);
+        } catch (error) {
+            console.error('Error fetching students:', error);
+            setAttendanceList([]);
+        } finally {
+            setLoadingStudents(false);
+        }
+    };
+
+    fetchStudents();
+}, [selectedClass, selectedSession]);
 
 // FETCH EXISTING ATTENDANCE FOR DATE
 const { data: existingAttendance } = useQuery({
