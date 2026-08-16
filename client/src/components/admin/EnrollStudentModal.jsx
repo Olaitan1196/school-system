@@ -3,7 +3,7 @@ import { useMutation } from '@tanstack/react-query';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
 
-const EnrollStudentModal = ({ classes, sessions, onClose, onSuccess }) => {
+const EnrollStudentModal = ({ classes, sessions, queryClient, onClose, onSuccess }) => {
     const [form, setForm] = useState({
         student_id: '',
         class_id: '',
@@ -44,7 +44,10 @@ const EnrollStudentModal = ({ classes, sessions, onClose, onSuccess }) => {
         },
         onSuccess: (data) => {
             toast.success(data.message);
+            // Invalidate all class-students queries so scores/attendance pages refetch
+            queryClient.invalidateQueries(['class-students']);
             onSuccess();
+},
         },
         onError: (error) => {
             toast.error(error.response?.data?.message || 'Failed.');

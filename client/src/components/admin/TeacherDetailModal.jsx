@@ -282,6 +282,7 @@ const TeacherDetailModal = ({ teacher, onClose, onUpdate }) => {
             {showAssignModal && (
                 <AddAssignmentModal
                     teacherId={teacher.id}
+                    queryClient={queryClient}
                     onClose={() => setShowAssignModal(false)}
                     onSuccess={() => {
                         setShowAssignModal(false);
@@ -297,7 +298,7 @@ const TeacherDetailModal = ({ teacher, onClose, onUpdate }) => {
 // ============================================
 // ADD ASSIGNMENT MODAL
 // ============================================
-const AddAssignmentModal = ({ teacherId, onClose, onSuccess }) => {
+const AddAssignmentModal = ({ teacherId, onClose, onSuccess, queryClient }) => {
     const [form, setForm] = useState({
         subject_id: '',
         class_id: '',
@@ -348,6 +349,9 @@ const AddAssignmentModal = ({ teacherId, onClose, onSuccess }) => {
         onSuccess: (data) => {
             toast.success(data.message);
             onSuccess();
+            // Invalidate teacher queries so dashboard/classes pages refetch
+            queryClient.invalidateQueries(['teacher-detail']);
+            queryClient.invalidateQueries(['my-assignments']);
         },
         onError: (error) => {
             toast.error(error.response?.data?.message || 'Failed.');

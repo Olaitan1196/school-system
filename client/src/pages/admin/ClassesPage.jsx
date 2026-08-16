@@ -402,6 +402,7 @@ const ClassesPage = () => {
                 <EnrollStudentModal
                     classes={classes}
                     sessions={sessions}
+                    queryClient={queryClient}
                     onClose={() => setShowModal(null)}
                     onSuccess={() => setShowModal(null)}
                 />
