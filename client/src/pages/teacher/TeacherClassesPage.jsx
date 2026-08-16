@@ -46,8 +46,9 @@ useEffect(() => {
         },
         enabled: !!(selectedClass && selectedSession)
     });
-
-    const assignments = teacherData?.assignments ?? [];
+    console.log('🔍 teacherData:', teacherData);
+    console.log('📋 assignments:', teacherData?.data?.assignments);
+    const assignments = teacherData?.data?.assignments ?? [];
     const sessions = sessionsData?.data ?? [];
     const students = studentsData?.data ?? [];
 
