@@ -50,6 +50,7 @@ const AttendancePage = () => {
             return res.data;
         },
         enabled: !!(selectedClass && selectedSession),
+        staleTime: 0,
         onSuccess: (data) => {
             const list = data.data.map((student) => ({
                 student_id: student.student_id,
@@ -73,6 +74,7 @@ const AttendancePage = () => {
             return res.data;
         },
         enabled: !!(selectedClass && selectedDate && selectedTerm && selectedSession),
+        staleTime: 0,
         onSuccess: (data) => {
             if (data.data.length > 0) {
                 setAttendanceList(prev => prev.map(student => {
