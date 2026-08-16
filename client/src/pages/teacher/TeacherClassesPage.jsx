@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -8,15 +8,23 @@ const TeacherClassesPage = () => {
     const [selectedClass, setSelectedClass] = useState(null);
     const [selectedSession, setSelectedSession] = useState('');
 
-    // FETCH MY ASSIGNMENTS
-    const { data: teacherData } = useQuery({
-        queryKey: ['teacher-detail', user?.teacher_id],
-        queryFn: async () => {
+    // FETCH MY ASSIGNMENTS - Direct fetch
+const [teacherData, setTeacherData] = useState(null);
+
+useEffect(() => {
+    if (!user?.teacher_id) return;
+
+    const fetchTeacherData = async () => {
+        try {
             const res = await api.get(`/teachers/${user.teacher_id}`);
-            return res.data;
-        },
-        enabled: !!user?.teacher_id
-    });
+            setTeacherData(res.data);
+        } catch (error) {
+            console.error('Error fetching teacher data:', error);
+        }
+    };
+
+    fetchTeacherData();
+}, [user?.teacher_id]);
 
     // FETCH SESSIONS
     const { data: sessionsData } = useQuery({
