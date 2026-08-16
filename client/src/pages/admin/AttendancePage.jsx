@@ -52,6 +52,7 @@ const AttendancePage = () => {
         enabled: !!(selectedClass && selectedSession),
         staleTime: 0,
         onSuccess: (data) => {
+            console.log('🎓 Students fetched:', data.data.length);
             const list = data.data.map((student) => ({
                 student_id: student.student_id,
                 first_name: student.first_name,
