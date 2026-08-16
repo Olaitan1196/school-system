@@ -71,7 +71,8 @@ app.use(cors({
         }
         return callback(null, true); // Open for now
     },
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(helmet({
