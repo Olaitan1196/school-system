@@ -41,88 +41,84 @@ const AttendancePage = () => {
     });
 
     // FETCH STUDENTS IN CLASS
-    const { data: studentsData, isLoading: loadingStudents } = useQuery({
-        queryKey: ['class-students', selectedClass, selectedSession],
-        queryFn: async () => {
-            console.log('📡 Fetching students for class:', selectedClass, 'session:', selectedSession);
-            const res = await api.get(
-                `/academic/classes/${selectedClass}/students?session_id=${selectedSession}`
-            );
-            console.log('📦 Response received:', res.data);
-            return res.data;
-        },
-        enabled: !!(selectedClass && selectedSession),
-        staleTime: 0,
-        onSuccess: (data) => {
-            console.log('🎓 Students fetched:', data.data.length);
-            const list = data.data.map((student) => ({
-                student_id: student.student_id,
-                first_name: student.first_name,
-                last_name: student.last_name,
-                admission_number: student.admission_number,
-                status: 'present',
-                remark: ''
+const { data: studentsData, isLoading: loadingStudents } = useQuery({
+    queryKey: ['class-students', selectedClass, selectedSession],
+    queryFn: async () => {
+        const res = await api.get(
+            `/academic/classes/${selectedClass}/students?session_id=${selectedSession}`
+        );
+        return res.data;
+    },
+    enabled: !!(selectedClass && selectedSession),
+    staleTime: 0,
+    onSuccess: (data) => {
+        const list = data.data.map((student) => ({
+            student_id: student.student_id,
+            first_name: student.first_name,
+            last_name: student.last_name,
+            admission_number: student.admission_number,
+            status: 'present',
+            remark: ''
+        }));
+        setAttendanceList(list);
+    }
+});
+
+// FETCH EXISTING ATTENDANCE FOR DATE
+const { data: existingAttendance } = useQuery({
+    queryKey: ['attendance', selectedClass, selectedDate, selectedTerm, selectedSession],
+    queryFn: async () => {
+        const res = await api.get(
+            `/attendance/class?class_id=${selectedClass}&attendance_date=${selectedDate}&term_id=${selectedTerm}&session_id=${selectedSession}`
+        );
+        return res.data;
+    },
+    enabled: !!(selectedClass && selectedDate && selectedTerm && selectedSession),
+    staleTime: 0,
+    onSuccess: (data) => {
+        if (data.data.length > 0) {
+            setAttendanceList(prev => prev.map(student => {
+                const existing = data.data.find(
+                    a => a.student_id === student.student_id
+                );
+                if (existing) {
+                    return {
+                        ...student,
+                        status: existing.status,
+                        remark: existing.remark || ''
+                    };
+                }
+                return student;
             }));
-            setAttendanceList(list);
         }
-    });
+    }
+});
 
-    // FETCH EXISTING ATTENDANCE FOR DATE
-    const { data: existingAttendance } = useQuery({
-        queryKey: ['attendance', selectedClass, selectedDate, selectedTerm, selectedSession],
-        queryFn: async () => {
-            const res = await api.get(
-                `/attendance/class?class_id=${selectedClass}&attendance_date=${selectedDate}&term_id=${selectedTerm}&session_id=${selectedSession}`
-            );
-            return res.data;
-        },
-        enabled: !!(selectedClass && selectedDate && selectedTerm && selectedSession),
-        staleTime: 0,
-        onSuccess: (data) => {
-            if (data.data.length > 0) {
-                setAttendanceList
-    // FETCH CLASS ATTENDANCE SUMMARY
-    const { data: summaryData } = useQuery({
-        queryKey: ['attendance-summary', selectedClass, selectedTerm],
-        queryFn: async () => {
-            const res = await api.get((prev => prev.map(student => {
-                    const existing = data.data.find(
-                        a => a.student_id === student.student_id
-                    );
-                    if (existing) {
-                        return {
-                            ...student,
-                            status: existing.status,
-                            remark: existing.remark || ''
-                        };
-                    }
-                    return student;
-                }));
-            }
-        }
-    });
+// FETCH CLASS ATTENDANCE SUMMARY
+const { data: summaryData } = useQuery({
+    queryKey: ['attendance-summary', selectedClass, selectedTerm],
+    queryFn: async () => {
+        const res = await api.get(
+            `/attendance/class/summary?class_id=${selectedClass}&term_id=${selectedTerm}`
+        );
+        return res.data;
+    },
+    enabled: !!(selectedClass && selectedTerm) && activeTab === 'summary'
+});
 
-                `/attendance/class/summary?class_id=${selectedClass}&term_id=${selectedTerm}`
-            );
-            return res.data;
-        },
-        enabled: !!(selectedClass && selectedTerm) && activeTab === 'summary'
-    });
-
-    // MARK BULK ATTENDANCE
-    const markAttendanceMutation = useMutation({
-        mutationFn: async (data) => {
-            const res = await api.post('/attendance/bulk', data);
-            return res.data;
-        },
-        onSuccess: (data) => {
-            toast.success(data.message);
-        },
-        onError: (error) => {
-            toast.error(error.response?.data?.message || 'Failed.');
-        }
-    });
-
+// MARK BULK ATTENDANCE
+const markAttendanceMutation = useMutation({
+    mutationFn: async (data) => {
+        const res = await api.post('/attendance/bulk', data);
+        return res.data;
+    },
+    onSuccess: (data) => {
+        toast.success(data.message);
+    },
+    onError: (error) => {
+        toast.error(error.response?.data?.message || 'Failed.');
+    }
+});
     const handleStatusChange = (studentId, status) => {
         setAttendanceList(prev => prev.map(s =>
             s.student_id === studentId ? { ...s, status } : s
