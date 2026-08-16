@@ -51,6 +51,7 @@ const { data: studentsData, isLoading: loadingStudents } = useQuery({
     },
     enabled: !!(selectedClass && selectedSession),
     staleTime: 0,
+    gcTime: 0,
     onSuccess: (data) => {
         const list = data.data.map((student) => ({
             student_id: student.student_id,
