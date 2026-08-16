@@ -65,14 +65,14 @@ const AttendancePage = () => {
 
     // FETCH EXISTING ATTENDANCE FOR DATE
     const { data: existingAttendance } = useQuery({
-        queryKey: ['attendance', selectedClass, selectedDate, selectedTerm],
+        queryKey: ['attendance', selectedClass, selectedDate, selectedTerm, selectedSession],
         queryFn: async () => {
             const res = await api.get(
-                `/attendance/class?class_id=${selectedClass}&attendance_date=${selectedDate}&term_id=${selectedTerm}`
+                `/attendance/class?class_id=${selectedClass}&attendance_date=${selectedDate}&term_id=${selectedTerm}&session_id=${selectedSession}`
             );
             return res.data;
         },
-        enabled: !!(selectedClass && selectedDate && selectedTerm),
+        enabled: !!(selectedClass && selectedDate && selectedTerm && selectedSession),
         onSuccess: (data) => {
             if (data.data.length > 0) {
                 setAttendanceList(prev => prev.map(student => {
