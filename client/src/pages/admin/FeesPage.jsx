@@ -12,6 +12,10 @@ const FeesPage = () => {
     const [selectedClass, setSelectedClass] = useState('');
     const [selectedSession, setSelectedSession] = useState('');
     const [selectedTerm, setSelectedTerm] = useState('');
+    const [invoiceMode, setInvoiceMode] = useState('bulk'); // 'bulk' or 'single'
+    const [studentSearch, setStudentSearch] = useState('');
+    const [foundStudent, setFoundStudent] = useState(null);
+    const [searchingStudent, setSearchingStudent] = useState(false);
 
     // FETCH FEE ITEMS
     const { data: feeItemsData } = useQuery({
@@ -86,6 +90,41 @@ const FeesPage = () => {
         },
         onSuccess: (data) => {
             toast.success(data.message);
+        },
+        onError: (error) => {
+            toast.error(error.response?.data?.message || 'Failed.');
+        }
+    });
+
+        // SEARCH STUDENT FOR SINGLE INVOICE
+    const searchStudentForInvoice = async () => {
+        if (!studentSearch) return;
+        setSearchingStudent(true);
+        try {
+            const res = await api.get(`/students?search=${studentSearch}&limit=1`);
+            if (res.data.data.length > 0) {
+                setFoundStudent(res.data.data[0]);
+            } else {
+                toast.error('Student not found.');
+                setFoundStudent(null);
+            }
+        } catch (error) {
+            toast.error('Search failed.');
+        } finally {
+            setSearchingStudent(false);
+        }
+    };
+
+    // SINGLE GENERATE INVOICE
+    const singleInvoiceMutation = useMutation({
+        mutationFn: async (data) => {
+            const res = await api.post('/fees/invoices', data);
+            return res.data;
+        },
+        onSuccess: (data) => {
+            toast.success(data.message);
+            setFoundStudent(null);
+            setStudentSearch('');
         },
         onError: (error) => {
             toast.error(error.response?.data?.message || 'Failed.');
@@ -322,6 +361,73 @@ const FeesPage = () => {
                         will have theirs created automatically.
                     </p>
 
+                    <div className="flex gap-2 mb-6">
+                        <button
+                            type="button"
+                            onClick={() => setInvoiceMode('bulk')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                invoiceMode === 'bulk'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-white text-purple-600 border border-purple-200'
+                            }`}
+                        >
+                            Whole Class
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setInvoiceMode('single')}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                                invoiceMode === 'single'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-white text-purple-600 border border-purple-200'
+                            }`}
+                        >
+                            Single Student
+                        </button>
+                    </div>
+
+                    {invoiceMode === 'single' && (
+                        <div className="form-group mb-6">
+                            <label className="form-label">Search Student <span className="text-red-500">*</span></label>
+                            <div className="flex gap-2">
+                                <input
+                                    value={studentSearch}
+                                    onChange={(e) => setStudentSearch(e.target.value)}
+                                    className="input-field"
+                                    placeholder="Enter name or admission number"
+                                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), searchStudentForInvoice())}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={searchStudentForInvoice}
+                                    disabled={searchingStudent}
+                                    className="btn-primary px-4 whitespace-nowrap"
+                                >
+                                    {searchingStudent ? '...' : 'Search'}
+                                </button>
+                            </div>
+                            {foundStudent && (
+                                <div className="bg-green-50 border border-green-200 rounded-xl p-3 mt-3 flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                        <span className="text-green-700 font-bold text-sm">
+                                            {foundStudent.first_name?.[0]}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <p className="text-green-800 font-medium text-sm">
+                                            {foundStudent.first_name} {foundStudent.last_name}
+                                        </p>
+                                        <p className="text-green-600 text-xs">
+                                            {foundStudent.admission_number}
+                                        </p>
+                                    </div>
+                                    <span className="ml-auto text-green-500">✓</span>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {(invoiceMode === 'bulk' || foundStudent) && (
                     <div className="grid sm:grid-cols-3 gap-4 mb-6">
                         <div className="form-group">
                             <label className="form-label">Session</label>
@@ -363,43 +469,76 @@ const FeesPage = () => {
                             </select>
                         </div>
                     </div>
+                    )}
 
-                    <div className="bg-purple-50 rounded-xl p-4 mb-6 border border-purple-100">
-                        <p className="text-purple-700 text-sm font-medium mb-2">
-                            What this will do:
-                        </p>
-                        <ul className="text-purple-500 text-sm space-y-1">
-                            <li>✓ Load all fee structures for selected class and term</li>
-                            <li>✓ Find all enrolled students in selected class</li>
-                            <li>✓ Generate one invoice per student</li>
-                            <li>✓ Skip students who already have invoices</li>
-                        </ul>
-                    </div>
+                    {invoiceMode === 'bulk' && (
+                        <div className="bg-purple-50 rounded-xl p-4 mb-6 border border-purple-100">
+                            <p className="text-purple-700 text-sm font-medium mb-2">
+                                What this will do:
+                            </p>
+                            <ul className="text-purple-500 text-sm space-y-1">
+                                <li>✓ Load all fee structures for selected class and term</li>
+                                <li>✓ Find all enrolled students in selected class</li>
+                                <li>✓ Generate one invoice per student</li>
+                                <li>✓ Skip students who already have invoices</li>
+                            </ul>
+                        </div>
+                    )}
 
-                    <button
-                        onClick={() => {
-                            if (!selectedClass || !selectedSession || !selectedTerm) {
-                                toast.error('Please select class, session and term.');
-                                return;
-                            }
-                            bulkInvoiceMutation.mutate({
-                                class_id: selectedClass,
-                                session_id: selectedSession,
-                                term_id: selectedTerm
-                            });
-                        }}
-                        disabled={bulkInvoiceMutation.isPending}
-                        className="btn-primary"
-                    >
-                        {bulkInvoiceMutation.isPending ? (
-                            <span className="flex items-center gap-2">
-                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                Generating...
-                            </span>
-                        ) : (
-                            '🧾 Generate Invoices for Class'
-                        )}
-                    </button>
+                    {invoiceMode === 'bulk' && (
+                        <button
+                            onClick={() => {
+                                if (!selectedClass || !selectedSession || !selectedTerm) {
+                                    toast.error('Please select class, session and term.');
+                                    return;
+                                }
+                                bulkInvoiceMutation.mutate({
+                                    class_id: selectedClass,
+                                    session_id: selectedSession,
+                                    term_id: selectedTerm
+                                });
+                            }}
+                            disabled={bulkInvoiceMutation.isPending}
+                            className="btn-primary"
+                        >
+                            {bulkInvoiceMutation.isPending ? (
+                                <span className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    Generating...
+                                </span>
+                            ) : (
+                                '🧾 Generate Invoices for Class'
+                            )}
+                        </button>
+                    )}
+
+                    {invoiceMode === 'single' && (
+                        <button
+                            onClick={() => {
+                                if (!foundStudent || !selectedClass || !selectedSession || !selectedTerm) {
+                                    toast.error('Please search a student and select class, session and term.');
+                                    return;
+                                }
+                                singleInvoiceMutation.mutate({
+                                    student_id: foundStudent.id,
+                                    class_id: selectedClass,
+                                    session_id: selectedSession,
+                                    term_id: selectedTerm
+                                });
+                            }}
+                            disabled={singleInvoiceMutation.isPending}
+                            className="btn-primary"
+                        >
+                            {singleInvoiceMutation.isPending ? (
+                                <span className="flex items-center gap-2">
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                    Generating...
+                                </span>
+                            ) : (
+                                '🧾 Generate Invoice for Student'
+                            )}
+                        </button>
+                    )}
                 </div>
             )}
 

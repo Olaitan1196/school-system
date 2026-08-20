@@ -28,13 +28,13 @@ router.use(verifyToken);
 // SESSION ROUTES
 // ============================================
 router.post('/sessions', adminOnly, createSession);
-router.get('/sessions', allowRoles('admin', 'class_teacher', 'subject_teacher'), getAllSessions);
+router.get('/sessions', allowRoles('admin', 'class_teacher', 'subject_teacher', 'student'), getAllSessions);
 
 // ============================================
 // TERM ROUTES
 // ============================================
 router.post('/terms', adminOnly, createTerm);
-router.get('/terms', allowRoles('admin', 'class_teacher', 'subject_teacher'), getAllTerms);
+router.get('/terms', allowRoles('admin', 'class_teacher', 'subject_teacher', 'student'), getAllTerms);
 
 // ============================================
 // CLASS ROUTES

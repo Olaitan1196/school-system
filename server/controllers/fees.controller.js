@@ -7,11 +7,11 @@ dotenv.config();
 // ============================================
 // GENERATE INVOICE NUMBER
 // ============================================
-const generateInvoiceNumber = async () => {
-    const countQuery = await db.query(
-        `SELECT COUNT(*) FROM invoices`
+const generateInvoiceNumber = async (client) => {
+    const result = await client.query(
+        `SELECT nextval('invoice_number_seq') AS seq`
     );
-    const count = parseInt(countQuery.rows[0].count) + 1;
+    const count = parseInt(result.rows[0].seq);
     const year = new Date().getFullYear();
     const sequence = String(count).padStart(4, '0');
     return `INV/CC/${year}/${sequence}`;
@@ -325,7 +325,7 @@ export const generateInvoice = async (req, res) => {
         );
 
         // Generate invoice number
-        const invoiceNumber = await generateInvoiceNumber();
+        const invoiceNumber = await generateInvoiceNumber(client);
 
         // Create invoice
         const invoice = await client.query(
@@ -473,7 +473,7 @@ export const generateBulkInvoices = async (req, res) => {
                 continue;
             }
 
-            const invoiceNumber = await generateInvoiceNumber();
+            const invoiceNumber = await generateInvoiceNumber(client);
 
             const invoice = await client.query(
                 `INSERT INTO invoices (
