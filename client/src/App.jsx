@@ -97,7 +97,7 @@ const App = () => {
             <Route path="/exam-access" element={<ExamAccessPage />} />
             <Route path="/practice-exams" element={<PublicExamPage />} />
             <Route path="/cbt-login" element={<CBTLoginPage />} />
-            <Route path="/cbt-exam" element={<CBTExamPage />} />
+            <Route path="/cbt/exam" element={<CBTExamPage />} />
 
             {/* AUTH ROUTES */}
             <Route path="/login/admin" element={<AdminLoginPage />} />

@@ -121,6 +121,13 @@ const StudentDashboard = () => {
                         path: '/student/invoice'
                     },
                     {
+                        icon: '💻',
+                        label: 'CBT Exams',
+                        desc: 'Enter exam token',
+                        color: 'bg-fuchsia-50',
+                        path: '/cbt-login'
+                    },
+                    {
                         icon: '📚',
                         label: 'Library',
                         desc: 'Browse books',

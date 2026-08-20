@@ -267,6 +267,72 @@ export const createExam = async (req, res) => {
     }
 };
 
+// ============================================
+// DELETE CBT EXAM
+// ============================================
+export const deleteExam = async (req, res) => {
+    try {
+        const { exam_id } = req.params;
+
+        const examQuery = await db.query(
+            `SELECT id FROM cbt_exams WHERE id = $1`,
+            [exam_id]
+        );
+
+        if (examQuery.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'Exam not found.'
+            });
+        }
+
+        // Check if any sessions exist for this exam
+        const sessionsQuery = await db.query(
+            `SELECT id FROM cbt_sessions WHERE exam_id = $1`,
+            [exam_id]
+        );
+
+        if (sessionsQuery.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'This exam has scheduled sessions. Please delete all its sessions first.'
+            });
+        }
+
+        await db.query(
+            `DELETE FROM cbt_exams WHERE id = $1`,
+            [exam_id]
+        );
+
+        await db.query(
+            `INSERT INTO audit_logs
+             (user_id, user_role, action, module,
+              target_table, target_id, description)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+                req.user.id,
+                req.user.role,
+                'deleted_cbt_exam',
+                'cbt',
+                'cbt_exams',
+                exam_id,
+                `Admin deleted CBT exam`
+            ]
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Exam deleted successfully.'
+        });
+
+    } catch (error) {
+        console.error('Delete exam error:', error.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again.'
+        });
+    }
+};
 
 // ============================================
 // GET ALL EXAMS
@@ -467,6 +533,134 @@ export const closeCbtSession = async (req, res) => {
     }
 };
 
+// ============================================
+// GET ALL SESSIONS (optionally filtered by exam)
+// ============================================
+export const getAllSessions = async (req, res) => {
+    try {
+        const { exam_id } = req.query;
+
+        let conditions = [];
+        let values = [];
+        let counter = 1;
+
+        if (exam_id) {
+            conditions.push(`cs.exam_id = $${counter}`);
+            values.push(exam_id);
+            counter++;
+        }
+
+        const whereClause = conditions.length > 0
+            ? `WHERE ${conditions.join(' AND ')}`
+            : '';
+
+        const result = await db.query(
+            `SELECT cs.*,
+                    ce.exam_title, ce.exam_type,
+                    ce.duration_minutes
+             FROM cbt_sessions cs
+             LEFT JOIN cbt_exams ce ON ce.id = cs.exam_id
+             ${whereClause}
+             ORDER BY cs.scheduled_date DESC, cs.start_time DESC`,
+            values
+        );
+
+        return res.status(200).json({
+            success: true,
+            data: result.rows
+        });
+
+    } catch (error) {
+        console.error('Get all sessions error:', error.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again.'
+        });
+    }
+};
+
+
+// ============================================
+// DELETE CBT SESSION
+// ============================================
+export const deleteCbtSession = async (req, res) => {
+    const client = await db.connect();
+    try {
+        const { session_id } = req.params;
+
+        const sessionQuery = await db.query(
+            `SELECT id FROM cbt_sessions WHERE id = $1`,
+            [session_id]
+        );
+
+        if (sessionQuery.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'CBT session not found.'
+            });
+        }
+
+        // Block deletion if any student has results for this session
+        const resultsQuery = await db.query(
+            `SELECT id FROM cbt_results WHERE cbt_session_id = $1`,
+            [session_id]
+        );
+
+        if (resultsQuery.rows.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'This session has student results and cannot be deleted.'
+            });
+        }
+
+        await client.query('BEGIN');
+
+        // Safe to delete tokens now, since we confirmed no results exist
+        await client.query(
+            `DELETE FROM cbt_tokens WHERE cbt_session_id = $1`,
+            [session_id]
+        );
+
+        // Now delete the session itself
+        await client.query(
+            `DELETE FROM cbt_sessions WHERE id = $1`,
+            [session_id]
+        );
+
+        await client.query('COMMIT');
+
+        await db.query(
+            `INSERT INTO audit_logs
+             (user_id, user_role, action, module,
+              target_table, target_id, description)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [
+                req.user.id,
+                req.user.role,
+                'deleted_cbt_session',
+                'cbt',
+                'cbt_sessions',
+                session_id,
+                `Admin deleted CBT session and its tokens`
+            ]
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'CBT session and its tokens deleted successfully.'
+        });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Delete CBT session error:', error.message);
+        return res.status(500).json({
+            success: false,
+            message: 'Server error. Please try again.'
+        });
+    } finally {
+        client.release();
+    }
+};
 
 // ============================================
 // STUDENT START EXAM

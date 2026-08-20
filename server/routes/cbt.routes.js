@@ -5,9 +5,12 @@ import {
     getQuestions,
     createExam,
     getAllExams,
+    deleteExam,
     createCbtSession,
+    getAllSessions,
     openCbtSession,
     closeCbtSession,
+    deleteCbtSession,
     startExam,
     recordTabSwitch,
     submitExam,
@@ -58,13 +61,20 @@ router.get(
     allowRoles('admin', 'class_teacher', 'subject_teacher', 'student'),
     getAllExams
 );
+router.delete('/exams/:exam_id', adminOnly, deleteExam);
 
 // ============================================
 // CBT SESSION ROUTES
 // ============================================
 router.post('/sessions', adminOnly, createCbtSession);
+router.get(
+    '/sessions',
+    allowRoles('admin', 'class_teacher', 'subject_teacher'),
+    getAllSessions
+);
 router.patch('/sessions/:session_id/open', adminOnly, openCbtSession);
 router.patch('/sessions/:session_id/close', adminOnly, closeCbtSession);
+router.delete('/sessions/:session_id', adminOnly, deleteCbtSession);
 
 // ============================================
 // STUDENT EXAM ROUTES

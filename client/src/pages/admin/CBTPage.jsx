@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../../services/api';
 import toast from 'react-hot-toast';
@@ -12,6 +12,8 @@ const CBTPage = () => {
     const [showCreateSessionModal, setShowCreateSessionModal] = useState(false);
     const [showBulkImportModal, setShowBulkImportModal] = useState(false);
     const [selectedExam, setSelectedExam] = useState(null);
+    const [sessionExamFilter, setSessionExamFilter] = useState('');
+    const [viewingTokensSession, setViewingTokensSession] = useState(null);
 
     // FETCH EXAMS
     const { data: examsData, isLoading: loadingExams } = useQuery({
@@ -42,6 +44,18 @@ const CBTPage = () => {
         enabled: activeTab === 'flagged'
     });
 
+    // FETCH SESSIONS
+    const { data: sessionsData, isLoading: loadingSessions } = useQuery({
+        queryKey: ['cbt-sessions', sessionExamFilter],
+        queryFn: async () => {
+            const params = new URLSearchParams();
+            if (sessionExamFilter) params.append('exam_id', sessionExamFilter);
+            const res = await api.get(`/cbt/sessions?${params}`);
+            return res.data;
+        },
+        enabled: activeTab === 'sessions'
+    });
+
     // OPEN SESSION MUTATION
     const openSessionMutation = useMutation({
         mutationFn: async (sessionId) => {
@@ -51,6 +65,7 @@ const CBTPage = () => {
         onSuccess: (data) => {
             toast.success(data.message);
             queryClient.invalidateQueries(['cbt-exams']);
+            queryClient.invalidateQueries(['cbt-sessions']);
         },
         onError: (error) => {
             toast.error(error.response?.data?.message || 'Failed.');
@@ -66,6 +81,37 @@ const CBTPage = () => {
         onSuccess: (data) => {
             toast.success(data.message);
             queryClient.invalidateQueries(['cbt-exams']);
+            queryClient.invalidateQueries(['cbt-sessions']);
+        },
+        onError: (error) => {
+            toast.error(error.response?.data?.message || 'Failed.');
+        }
+    });
+
+    // DELETE SESSION MUTATION
+    const deleteSessionMutation = useMutation({
+        mutationFn: async (sessionId) => {
+            const res = await api.delete(`/cbt/sessions/${sessionId}`);
+            return res.data;
+        },
+        onSuccess: (data) => {
+            toast.success(data.message);
+            queryClient.invalidateQueries(['cbt-sessions']);
+        },
+        onError: (error) => {
+            toast.error(error.response?.data?.message || 'Failed.');
+        }
+    });
+
+    // DELETE EXAM MUTATION
+    const deleteExamMutation = useMutation({
+        mutationFn: async (examId) => {
+            const res = await api.delete(`/cbt/exams/${examId}`);
+            return res.data;
+        },
+        onSuccess: (data) => {
+            toast.success(data.message);
+            queryClient.invalidateQueries(['cbt-exams']);
         },
         onError: (error) => {
             toast.error(error.response?.data?.message || 'Failed.');
@@ -75,9 +121,21 @@ const CBTPage = () => {
     const exams = examsData?.data ?? [];
     const questions = questionsData?.data ?? [];
     const flagged = flaggedData?.data ?? [];
+    const sessions = sessionsData?.data ?? [];
+
+    const getSessionStatus = (session) => {
+        const now = new Date();
+        const datePart = session.scheduled_date.split('T')[0];
+        const endDateTime = new Date(`${datePart}T${session.end_time}`);
+        if (session.is_completed) return { label: 'Closed', color: 'bg-gray-100 text-gray-600' };
+        if (endDateTime < now) return { label: 'Expired', color: 'bg-red-100 text-red-600' };
+        if (session.is_open) return { label: 'Open', color: 'bg-green-100 text-green-700' };
+        return { label: 'Scheduled', color: 'bg-yellow-100 text-yellow-700' };
+    };
 
     const tabs = [
         { id: 'exams', label: 'Exams', icon: '📝' },
+        { id: 'sessions', label: 'Sessions', icon: '🗂️' },
         { id: 'questions', label: 'Question Bank', icon: '❓' },
         { id: 'flagged', label: 'Flagged Students', icon: '🚩' },
     ];
@@ -188,14 +246,35 @@ const CBTPage = () => {
                                         <span>📊 {exam.total_questions} questions</span>
                                         <span>🏆 Pass: {exam.pass_mark}%</span>
                                     </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            onClick={() => {
+                                                setSelectedExam(exam);
+                                                setShowCreateSessionModal(true);
+                                            }}
+                                            className="py-2 text-xs font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors"
+                                        >
+                                            Schedule Session
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setSessionExamFilter(exam.id);
+                                                setActiveTab('sessions');
+                                            }}
+                                            className="py-2 text-xs font-medium bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-lg transition-colors"
+                                        >
+                                            View Sessions
+                                        </button>
+                                    </div>
                                     <button
                                         onClick={() => {
-                                            setSelectedExam(exam);
-                                            setShowCreateSessionModal(true);
+                                            if (window.confirm(`Delete "${exam.exam_title}"? This cannot be undone.`)) {
+                                                deleteExamMutation.mutate(exam.id);
+                                            }
                                         }}
-                                        className="w-full py-2 text-xs font-medium bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg transition-colors"
+                                        className="w-full mt-2 py-2 text-xs font-medium bg-red-50 hover:bg-red-100 text-red-600 rounded-lg transition-colors"
                                     >
-                                        Schedule Session
+                                        🗑️ Delete Exam
                                     </button>
                                 </div>
                             ))}
@@ -272,6 +351,122 @@ const CBTPage = () => {
                             </tbody>
                         </table>
                     )}
+                </div>
+            )}
+
+            {/* SESSIONS TAB */}
+            {activeTab === 'sessions' && (
+                <div className="space-y-4">
+                    <div className="card">
+                        <div className="flex items-center gap-3">
+                            <select
+                                value={sessionExamFilter}
+                                onChange={(e) => setSessionExamFilter(e.target.value)}
+                                className="input-field max-w-xs"
+                            >
+                                <option value="">All Exams</option>
+                                {exams.map((exam) => (
+                                    <option key={exam.id} value={exam.id}>
+                                        {exam.exam_title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="card p-0 overflow-hidden">
+                        {loadingSessions ? (
+                            <div className="flex items-center justify-center py-16">
+                                <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                        ) : sessions.length === 0 ? (
+                            <div className="text-center py-16">
+                                <div className="text-5xl mb-3">🗂️</div>
+                                <p className="text-purple-400 font-medium">
+                                    No sessions found
+                                </p>
+                            </div>
+                        ) : (
+                            <table className="table">
+                                <thead>
+                                    <tr>
+                                        <th>Session</th>
+                                        <th>Exam</th>
+                                        <th>Date</th>
+                                        <th>Time</th>
+                                        <th>Venue</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {sessions.map((session) => {
+                                        const status = getSessionStatus(session);
+                                        return (
+                                            <tr key={session.id}>
+                                                <td className="font-medium text-purple-900 text-sm">
+                                                    {session.session_name}
+                                                </td>
+                                                <td className="text-purple-600 text-sm">
+                                                    {session.exam_title}
+                                                </td>
+                                                <td className="text-purple-600 text-sm">
+                                                    {new Date(session.scheduled_date).toLocaleDateString('en-NG')}
+                                                </td>
+                                                <td className="text-purple-600 text-sm">
+                                                    {session.start_time} - {session.end_time}
+                                                </td>
+                                                <td className="text-purple-600 text-sm">
+                                                    {session.venue || '—'}
+                                                </td>
+                                                <td>
+                                                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${status.color}`}>
+                                                        {status.label}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <button
+                                                            onClick={() => setViewingTokensSession(session)}
+                                                            className="text-xs px-2 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg font-medium transition-colors"
+                                                        >
+                                                            🔑 Tokens
+                                                        </button>
+                                                        {!session.is_open && !session.is_completed && (
+                                                            <button
+                                                                onClick={() => openSessionMutation.mutate(session.id)}
+                                                                className="text-xs px-2 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 rounded-lg font-medium transition-colors"
+                                                            >
+                                                                Open
+                                                            </button>
+                                                        )}
+                                                        {session.is_open && !session.is_completed && (
+                                                            <button
+                                                                onClick={() => closeSessionMutation.mutate(session.id)}
+                                                                className="text-xs px-2 py-1.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-700 rounded-lg font-medium transition-colors"
+                                                            >
+                                                                Close
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => {
+                                                                if (window.confirm('Delete this session? This cannot be undone.')) {
+                                                                    deleteSessionMutation.mutate(session.id);
+                                                                }
+                                                            }}
+                                                            className="text-xs px-2 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium transition-colors"
+                                                        >
+                                                            Delete
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
                 </div>
             )}
 
@@ -380,9 +575,17 @@ const CBTPage = () => {
                         setShowCreateSessionModal(false);
                         setSelectedExam(null);
                         queryClient.invalidateQueries(['cbt-exams']);
+                        queryClient.invalidateQueries(['cbt-sessions']);
                     }}
                     onOpen={openSessionMutation.mutate}
                     onClose2={closeSessionMutation.mutate}
+                />
+            )}
+
+            {viewingTokensSession && (
+                <ViewTokensModal
+                    session={viewingTokensSession}
+                    onClose={() => setViewingTokensSession(null)}
                 />
             )}
         </div>
@@ -1184,6 +1387,140 @@ const CreateCBTSessionModal = ({ exam, onClose, onSuccess, onOpen, onClose2 }) =
                         </div>
                     </div>
                 )}
+            </div>
+        </div>
+    );
+};
+
+// ============================================
+// VIEW TOKENS MODAL
+// ============================================
+const ViewTokensModal = ({ session, onClose }) => {
+    const [tokens, setTokens] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [generating, setGenerating] = useState(false);
+
+    const fetchTokens = async () => {
+        setLoading(true);
+        try {
+            const res = await api.get(
+                `/cbt-tokens/sessions/${session.id}/tokens`
+            );
+            if (res.data.success) {
+                setTokens(res.data.data);
+            }
+        } catch (error) {
+            toast.error('Failed to fetch tokens.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchTokens();
+    }, [session.id]);
+
+    const handleGenerateTokens = async () => {
+        setGenerating(true);
+        try {
+            const res = await api.post(
+                `/cbt-tokens/sessions/${session.id}/generate-tokens`
+            );
+            if (res.data.success) {
+                toast.success(res.data.message);
+                setTokens(res.data.data);
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.message || 'Failed to generate tokens.');
+        } finally {
+            setGenerating(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                    <div>
+                        <h2 className="text-xl font-bold text-purple-950"
+                            style={{ fontFamily: "'Playfair Display', serif" }}>
+                            Student Exam Tokens
+                        </h2>
+                        <p className="text-purple-400 text-sm">
+                            {session.session_name} · {session.exam_title}
+                        </p>
+                    </div>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-400">✕</button>
+                </div>
+
+                <div className="p-6">
+                    {loading ? (
+                        <div className="flex items-center justify-center py-16">
+                            <div className="w-8 h-8 border-4 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    ) : (
+                        <>
+                            <div className="flex justify-end mb-4">
+                                <button
+                                    onClick={handleGenerateTokens}
+                                    disabled={generating}
+                                    className="btn-primary text-sm"
+                                >
+                                    {generating
+                                        ? 'Generating...'
+                                        : tokens.length > 0
+                                            ? '🔄 Regenerate / Fetch Tokens'
+                                            : '🔑 Generate Tokens'}
+                                </button>
+                            </div>
+
+                            {tokens.length > 0 ? (
+                                <div className="border border-purple-100 rounded-xl overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-purple-50">
+                                            <tr>
+                                                <th className="text-left px-4 py-2 text-purple-700 font-semibold">Student</th>
+                                                <th className="text-left px-4 py-2 text-purple-700 font-semibold">Adm. No</th>
+                                                <th className="text-left px-4 py-2 text-purple-700 font-semibold">Token</th>
+                                                <th className="text-left px-4 py-2 text-purple-700 font-semibold">Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {tokens.map((t, idx) => (
+                                                <tr key={idx} className="border-t border-purple-50">
+                                                    <td className="px-4 py-2 text-purple-900 font-medium">
+                                                        {t.last_name} {t.first_name}
+                                                    </td>
+                                                    <td className="px-4 py-2 text-purple-500 text-xs">
+                                                        {t.admission_number}
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        <span className="bg-purple-100 text-purple-800 font-bold text-xs px-2 py-1 rounded-lg tracking-wide">
+                                                            {t.access_token}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 py-2">
+                                                        <span className={`text-xs font-medium px-2 py-1 rounded-full ${
+                                                            t.is_used
+                                                                ? 'bg-green-100 text-green-700'
+                                                                : 'bg-yellow-100 text-yellow-700'
+                                                        }`}>
+                                                            {t.is_used ? 'Used' : 'Unused'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ) : (
+                                <div className="text-center py-6 text-purple-300 text-sm">
+                                    No tokens yet. Click Generate Tokens to create them.
+                                </div>
+                            )}
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     );
